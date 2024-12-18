@@ -16,6 +16,7 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
       </div>
     );
   }
+  console.log('Rendering Jobs:', jobs);
 
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
@@ -50,16 +51,16 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(job.startTime)}
+                  {/* {formatDate(job.startTime)} */}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {job.endTime ? formatDate(job.endTime) : '-'}
+                  {/* {job.endTime ? formatDate(job.endTime) : '-'} */}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <StatusBadge status={job.status} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDuration(job.startTime, job.endTime)}
+                  {/* {formatDuration(job.startTime, job.endTime)} */}
                 </td>
               </tr>
             ))}

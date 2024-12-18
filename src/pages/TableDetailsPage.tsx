@@ -11,14 +11,8 @@ export function TableDetailsPage() {
   const { tableType } = useParams<{ tableType: string }>();
   const [selectedEnv, setSelectedEnv] = React.useState<Environment>('Dev');
 
-  const { data, isLoading } = useQuery(
-    ['cronJobs', tableType, selectedEnv],
-    () => fetchCronJobs(tableType as TableType, selectedEnv),
-    {
-      enabled: !!tableType,
-      select: (data) => data.jobs,
-    }
-  );
+  const {data, isLoading, error, refetch} = useQuery(['cronJobs', tableType, selectedEnv], () =>fetchCronJobs(tableType as tab,selectedEnv))
+  console.log('Fetched Data:', data);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white py-6">
