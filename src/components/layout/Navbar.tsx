@@ -34,7 +34,7 @@ export function Navbar() {
                     : 'text-gray-600 hover:text-primary-600'
                 }`}
               >
-                {/* Prod Pipeline */}
+                Prod Pipeline
               </Link>
             </div>
           </div>

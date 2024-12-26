@@ -4,11 +4,23 @@ import { StatusBadge } from '../dashboard/StatusBadge';
 import type { CronJob, TableType } from '../../types/cron';
 
 interface PipelineTableProps {
-  stages: TableType[];
-  data: CronJob[][];
+  stages: TableType[]; // Array of stage names
+  data: CronJob[]; // Array of all CronJob objects from the API
 }
 
 export function PipelineTable({ stages, data }: PipelineTableProps) {
+  console.log("thge stages are",stages)
+  console.log("data",data[0])
+  const test =data[0]
+  // Group jobs by their "table" field
+  const groupedData = stages.map((stage) => {
+    return test.filter((job) => job.table === stage);
+  });
+
+
+  // Debugging: Log the grouped data
+  console.log('Grouped Data:', groupedData);
+
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
       {/* Header */}
@@ -24,39 +36,40 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
       <div className="grid grid-cols-3 gap-4 p-4">
         {stages.map((stage, index) => (
           <div key={stage} className="space-y-4">
-            {data[index]?.slice(0, 3).map((job) => (
-              <div
-                key={job.id}
-                className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-primary-300 transition-colors"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-medium text-gray-900 truncate" title={job.name}>
-                    {job.name}
-                  </h4>
-                  <StatusBadge status={job.status} />
+            {/* Loop through jobs for each stage */}
+            {groupedData[index]?.slice(0, 3).map((job) => {
+              const startTime = job.start_time ? new Date(job.start_time) : null;
+              const endTime = job.end_time ? new Date(job.end_time) : null;
+              console.log(job.start_time)
+
+              return (
+                <div
+                  key={job.id}
+                  className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-primary-300 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 truncate" title={job.name}>
+                      {job.name}
+                    </h4>
+                    <StatusBadge status={job.status} />
+                  </div>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {startTime && <p>Started: {format(startTime, 'MMM dd, HH:mm:ss')}</p>}
+                    {endTime && <p>Ended: {format(endTime, 'MMM dd, HH:mm:ss')}</p>}
+                  </div>
                 </div>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>Started: {format(new Date(job.startTime), 'MMM dd, HH:mm:ss')}</p>
-                  {job.endTime && (
-                    <p>Ended: {format(new Date(job.endTime), 'MMM dd, HH:mm:ss')}</p>
-                  )}
-                  {job.error && (
-                    <p className="text-red-600 mt-2">Error: {job.error}</p>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
       </div>
 
-      {/* Summary Footer */}
+      {/* Footer */}
       <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 border-t border-gray-200">
         {stages.map((stage, index) => {
-          const latestJob = data[index]?.[0];
-          const totalJobs = data[index]?.length || 0;
-          const runningJobs = data[index]?.filter(j => j.status === 'running').length || 0;
-          const failedJobs = data[index]?.filter(j => j.status === 'failed').length || 0;
+          const totalJobs = groupedData[index]?.length || 0;
+          const runningJobs = groupedData[index]?.filter((j) => j.status === 'running').length || 0;
+          const failedJobs = groupedData[index]?.filter((j) => j.status === 'failed').length || 0;
 
           return (
             <div key={stage} className="text-center">

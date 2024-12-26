@@ -15,10 +15,14 @@ export function ProdPipelinePage() {
       () => fetchCronJobs(stage, 'Prod'),
       { 
         refetchInterval: 30000, // Refresh every 30 seconds
-        select: (data) => data.jobs, // Extract just the jobs array
+        select: (data) => data,
+         // Extract just the jobs array
       }
+
     )
   );
+  console.log(queries[0].data,"------------>data form queries")
+
 
   const isLoading = queries.some(query => query.isLoading);
 
