@@ -5,7 +5,7 @@ import { PipelineTable } from '../components/pipeline/PipelineTable';
 import { fetchCronJobs } from '../services/api/cronJobs';
 import type { TableType } from '../types/cron';
 
-const PIPELINE_STAGES: TableType[] = ['Summary Refresh', 'Redis', 'User Redis Load'];
+const PIPELINE_STAGES: TableType[] = ['summary refresh', 'redis', 'user redis load'];
 
 export function ProdPipelinePage() {
   // Fetch data for all stages in parallel

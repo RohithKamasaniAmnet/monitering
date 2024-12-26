@@ -1,5 +1,5 @@
 export type Environment = 'Dev' | 'QA' | 'Prod';
-export type TableType = 'Redis' | 'Summary Refresh' | 'User Redis Load';
+export type TableType = 'redis' | 'summary refresh' | 'user redis load';
 
 export interface CronJob {
   id: string;

@@ -34,18 +34,18 @@ export function Navbar() {
                     : 'text-gray-600 hover:text-primary-600'
                 }`}
               >
-                Prod Pipeline
+                {/* Prod Pipeline */}
               </Link>
             </div>
           </div>
           <div className="flex items-center">
-            <button
+            {/* <button
               onClick={toggleTimezone}
               className="flex items-center px-4 py-2 rounded-md bg-primary-50 text-primary-700 hover:bg-primary-100"
             >
               <span className="mr-2">🌐</span>
               {timezone === 'CST' ? 'CST' : 'IST'}
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

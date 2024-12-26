@@ -11,7 +11,7 @@ export function TableDetailsPage() {
   const { tableType } = useParams<{ tableType: string }>();
   const [selectedEnv, setSelectedEnv] = React.useState<Environment>('Dev');
 
-  const {data, isLoading, error, refetch} = useQuery(['cronJobs', tableType, selectedEnv], () =>fetchCronJobs(tableType as tab,selectedEnv))
+  const {data, isLoading, error, refetch} = useQuery(['cronJobs', tableType, selectedEnv], () =>fetchCronJobs(tableType as TableType,selectedEnv))
   console.log('Fetched Data:', data);
 
   return (
