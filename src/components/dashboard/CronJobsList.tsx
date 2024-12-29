@@ -43,6 +43,7 @@ function formatDuration(startTime: string, endTime: string): string {
   return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
+
 // Function to format the date into the desired format: "Thu Dec 26 13:43:48 IST 2024"
 function formatDateInIST(utcDate: string): string {
   const date = new Date(utcDate); // Parse the UTC date string
@@ -70,6 +71,7 @@ function formatDateInIST(utcDate: string): string {
   // Note: Make sure to treat the date as IST by converting to India Time Zone.
   return new Intl.DateTimeFormat('en-IN', options).format(date);
 }
+
 
 export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
   // State for pagination

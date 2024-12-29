@@ -21,7 +21,7 @@ export function ProdPipelinePage() {
 
     )
   );
-  console.log(queries[0].data,"------------>data form queries")
+  console.log(queries[0],"------------>data form queries")
 
 
   const isLoading = queries.some(query => query.isLoading);
