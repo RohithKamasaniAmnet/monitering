@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { StatusBadge } from '../dashboard/StatusBadge';
+import { toast, ToastContainer } from 'react-toastify';
 import type { CronJob, TableType } from '../../types/cron';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Helper function to format date in IST
 function formatDateInIST(utcDate: string): string {
@@ -76,10 +79,62 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
     }
   };
 
+  // API call function for flushing Redis
+  const flushRedis = async () => {
+    try {
+      const response = await fetch('http://ec2-3-229-220-107.compute-1.amazonaws.com:5000/flush_redis', {
+        method: 'POST',
+        headers: {
+          'X-API-Key': 'BBC5D941BE29674B8B56ED9C6A747',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to flush Redis');
+      }
+
+      const responseData = await response.json();
+      console.log('Redis flushed successfully:', responseData);
+      return 'Redis flushed successfully';  // Success message
+    } catch (error) {
+      console.error('Error flushing Redis:', error);
+      throw new Error('Error flushing Redis');  // Error message
+    }
+  };
+
+  // Mutation to flush Redis
+  const { mutate, isLoading: isFlushing } = useMutation(flushRedis, {
+    onMutate: () => {
+      // Optional: Disable the button and show a loading state
+    },
+    onSuccess: (data) => {
+      toast.success(data); // Show success toast
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`); // Show error toast
+    },
+  });
+
   return (
-    <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
-      {/* Filters */}
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50">
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-300">
+      {/* Toast Container */}
+      <ToastContainer />
+
+      {/* Flush Redis Button */}
+      <div className="p-6 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-lg">
+        <div className="flex justify-center">
+          <button
+            onClick={() => mutate()}
+            disabled={isFlushing}
+            className="px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-full disabled:bg-gray-300 transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-800"
+          >
+            {isFlushing ? 'Flushing Redis...' : 'Flush Redis'}
+          </button>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <div className="p-6 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-b border-gray-200">
         <div className="flex justify-between items-center">
           <div className="space-x-4">
             {/* Date Range Filter */}
@@ -87,14 +142,14 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
             />
             <span className="text-gray-500">to</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
             />
           </div>
 
@@ -102,7 +157,7 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+            className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
           >
             <option value="all">All Statuses</option>
             <option value="running">Running</option>
@@ -112,8 +167,8 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
         </div>
       </div>
 
-      {/* Header */}
-      <div className="grid grid-cols-3 gap-6 p-6 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-gray-200">
+      {/* Header Section */}
+      <div className="grid grid-cols-3 gap-6 p-6 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-gray-200 rounded-t-lg">
         {stages.map((stage) => (
           <div key={stage} className="text-center">
             <h3 className="text-xl font-semibold text-gray-800">{stage}</h3>
@@ -121,7 +176,7 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
         ))}
       </div>
 
-      {/* Content */}
+      {/* Content Section */}
       <div className="grid grid-cols-3 gap-6 p-6">
         {stages.map((stage) => (
           <div key={stage} className="space-y-4">
@@ -134,7 +189,7 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
                 return (
                   <div
                     key={job.id}
-                    className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:border-primary-300 transition-all duration-300 transform hover:scale-105 ${
+                    className={`bg-white rounded-lg p-6 border border-gray-200 hover:border-primary-300 transition-all duration-300 transform hover:scale-105 ${
                       isError ? 'border-red-500 bg-red-100' : ''
                     }`}
                   >

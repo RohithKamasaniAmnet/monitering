@@ -14,7 +14,7 @@ app.use(express.json());
  
 // Enable CORS for all domains (or you can restrict it to specific domains)
 app.use(cors({
-  origin: 'http://127.0.0.1:5173', // Add your frontend URL here
+  origin: 'http://ec2-54-225-233-174.compute-1.amazonaws.com:5389/', // Add your frontend URL here
   methods: ['GET', 'POST'], // Allow specific HTTP methods if needed
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow custom headers if necessary
 }));
