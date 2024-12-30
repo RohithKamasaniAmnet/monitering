@@ -3,7 +3,8 @@ import DatePicker from 'react-datepicker';
 import { CronJob } from '../../types/cron';
 import { StatusBadge } from './StatusBadge';
 import 'react-datepicker/dist/react-datepicker.css';
-import { IoCloseCircleOutline } from 'react-icons/io5'; // Icon for clearing filters
+import { IoCloseCircleOutline } from 'react-icons/io5';
+import { MdOutlineSearch } from 'react-icons/md'; // Search icon for added functionality
 
 interface CronJobsListProps {
   jobs: any[]; // Backend raw response
@@ -12,18 +13,18 @@ interface CronJobsListProps {
 
 // Transform backend response to camelCase
 function transformJobs(jobs: any[]): CronJob[] {
-  console.log('Raw backend jobs:', jobs); // Log the raw backend response
+  console.log('Raw backend jobs:', jobs);
 
   const transformed = jobs.map((job) => ({
     id: job.id,
     name: job.name,
-    startTime: job.start_time, // Map snake_case to camelCase
+    startTime: job.start_time,
     endTime: job.end_time,
     status: job.status,
     error: job.error_message,
   }));
 
-  console.log('Transformed jobs:', transformed); // Log the transformed data
+  console.log('Transformed jobs:', transformed);
   return transformed;
 }
 
@@ -32,56 +33,46 @@ function formatDuration(startTime: string, endTime: string): string {
   const start = new Date(startTime);
   const end = new Date(endTime);
 
-  const durationMs = end.getTime() - start.getTime(); // Difference in milliseconds
-  if (durationMs < 0) return '-'; // Handle edge case where endTime is earlier than startTime
+  const durationMs = end.getTime() - start.getTime();
+  if (durationMs < 0) return '-';
 
-  const hours = Math.floor(durationMs / 3600000); // 3600000 ms in an hour
-  const minutes = Math.floor((durationMs % 3600000) / 60000); // 60000 ms in a minute
-  const seconds = Math.floor((durationMs % 60000) / 1000); // 1000 ms in a second
+  const hours = Math.floor(durationMs / 3600000);
+  const minutes = Math.floor((durationMs % 3600000) / 60000);
+  const seconds = Math.floor((durationMs % 60000) / 1000);
 
-  // Format the duration in "HH:mm:ss" format
   return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-
 // Function to format the date into the desired format: "Thu Dec 26 13:43:48 IST 2024"
 function formatDateInIST(utcDate: string): string {
-  const date = new Date(utcDate); // Parse the UTC date string
+  const date = new Date(utcDate);
+  const timezoneOffset = 330;
 
-  // Get the timezone offset in minutes (in this case, for IST, it's +330 minutes)
-  const timezoneOffset = 330; // IST is UTC +5:30, so 330 minutes
+  date.setMinutes(date.getMinutes() - timezoneOffset);
 
-  // Adjust the date by subtracting the offset to get the original time in UTC
-  date.setMinutes(date.getMinutes() - timezoneOffset); // Revert the time back to UTC
-
-  // Options for the formatted output (day of week, date, time, and IST)
   const options: Intl.DateTimeFormatOptions = {
-    weekday: 'short', // Day of the week (e.g., Thu)
+    weekday: 'short',
     year: 'numeric',
-    month: 'short', // Abbreviated month (e.g., Dec)
+    month: 'short',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: true, // 12-hour format (AM/PM)
-    timeZoneName: 'short', // Time zone (IST)
+    hour12: true,
+    timeZoneName: 'short',
   };
 
-  // Using the 'en-IN' locale for Indian date format (DD MMM YYYY, HH:MM:SS AM/PM)
-  // Note: Make sure to treat the date as IST by converting to India Time Zone.
   return new Intl.DateTimeFormat('en-IN', options).format(date);
 }
 
-
 export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
-  // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 10;
 
   // State for date filters
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [exactDate, setExactDate] = useState<Date | null>(null); // New state for exact date
+  const [exactDate, setExactDate] = useState<Date | null>(null);
 
   // State for status filter
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -102,14 +93,12 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
   const filteredJobs = useMemo(() => {
     let result = sortedJobs;
 
-    // Filter by exact date if selected
     if (exactDate) {
       result = result.filter(
         (job) => new Date(job.startTime).toDateString() === exactDate.toDateString()
       );
     }
 
-    // Filter by date range if selected
     if (startDate) {
       result = result.filter((job) => new Date(job.startTime) >= startDate);
     }
@@ -117,7 +106,6 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
       result = result.filter((job) => new Date(job.startTime) <= endDate);
     }
 
-    // Filter by status
     if (statusFilter && statusFilter !== 'ALL') {
       result = result.filter((job) => job.status === statusFilter);
     }
@@ -125,19 +113,16 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
     return result;
   }, [sortedJobs, startDate, endDate, exactDate, statusFilter]);
 
-  // Pagination logic
   const indexOfLastJob = currentPage * jobsPerPage;
   const indexOfFirstJob = indexOfLastJob - jobsPerPage;
   const currentJobs = filteredJobs.slice(indexOfFirstJob, indexOfLastJob);
 
   const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
 
-  // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  // Handle clearing all filters
   const handleClearFilters = () => {
     setStartDate(null);
     setEndDate(null);
@@ -156,50 +141,47 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
       <div className="p-4">
-        {/* Filter Section - Inline Date and Status */}
-        <div className="flex gap-6 items-center mb-4 bg-blue-50 p-4 rounded-md">
-          {/* Date Range Filters */}
-          <div className="flex flex-col">
-            <label>Start Date</label>
+        {/* Filter Section */}
+        <div className="flex gap-6 items-center mb-6 bg-blue-50 p-4 rounded-md shadow-md">
+          <div className="flex flex-col space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Start Date</label>
             <DatePicker
               selected={startDate}
               onChange={(date: Date | null) => setStartDate(date)}
               dateFormat="yyyy-MM-dd"
-              className="px-4 py-2 border border-gray-300 rounded-md"
-              placeholderText="Start Date"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholderText="Select Start Date"
             />
           </div>
 
-          <div className="flex flex-col">
-            <label>End Date</label>
+          <div className="flex flex-col space-y-2">
+            <label className="text-sm font-semibold text-gray-700">End Date</label>
             <DatePicker
               selected={endDate}
               onChange={(date: Date | null) => setEndDate(date)}
               dateFormat="yyyy-MM-dd"
-              className="px-4 py-2 border border-gray-300 rounded-md"
-              placeholderText="End Date"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholderText="Select End Date"
             />
           </div>
 
-          {/* Exact Date Filter */}
-          <div className="flex flex-col">
-            <label>Exact Date</label>
+          <div className="flex flex-col space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Exact Date</label>
             <DatePicker
               selected={exactDate}
               onChange={(date: Date | null) => setExactDate(date)}
               dateFormat="yyyy-MM-dd"
-              className="px-4 py-2 border border-gray-300 rounded-md"
-              placeholderText="Exact Date"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm"
+              placeholderText="Select Exact Date"
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="flex flex-col">
-            <label>Status</label>
+          <div className="flex flex-col space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm"
             >
               <option value="ALL">All Statuses</option>
               <option value="failed">Failed</option>
@@ -208,10 +190,9 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
             </select>
           </div>
 
-          {/* Clear Filters Button */}
           <button
             onClick={handleClearFilters}
-            className="px-4 py-2 bg-red-500 text-white rounded-full flex items-center"
+            className="px-6 py-2 bg-red-600 text-white rounded-md flex items-center hover:bg-red-700 transition-all"
           >
             <IoCloseCircleOutline className="mr-2" /> Clear Filters
           </button>
@@ -220,7 +201,7 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-primary-50 to-white">
+          <thead className="bg-gradient-to-r from-blue-100 to-white">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Job Name
@@ -242,10 +223,10 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
           <tbody className="bg-white divide-y divide-gray-200">
             {/* Render jobs */}
             {currentJobs.map((job) => (
-              <tr key={job.id} className="hover:bg-gray-50 transition-colors">
+              <tr key={job.id} className="hover:bg-gray-50 transition-all">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{job.name}</div>
-                  {job.error && <div className="text-sm text-red-600 mt-1 whitespace-pre-line">{job.error}</div>}
+                  {job.error && <div className="text-sm text-red-600 mt-1">{job.error}</div>}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {job.startTime ? formatDateInIST(job.startTime) : '-'}
@@ -273,23 +254,28 @@ export function CronJobsList({ jobs, isLoading }: CronJobsListProps) {
           Showing {indexOfFirstJob + 1} to {Math.min(indexOfLastJob, filteredJobs.length)} of{' '}
           {filteredJobs.length} jobs
         </div>
-        <div>
+        <div className="flex gap-4">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-4 py-2 border border-gray-300 rounded-md"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300"
           >
             Previous
           </button>
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border border-gray-300 rounded-md"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300"
           >
             Next
           </button>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-100 py-4 text-center text-sm text-gray-600">
+        <span>In-house developed product by <strong>Amnet Digital</strong></span>
+      </footer>
     </div>
   );
 }

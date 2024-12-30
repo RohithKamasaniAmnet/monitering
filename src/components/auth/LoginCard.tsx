@@ -14,7 +14,7 @@ export function LoginCard({ onSubmit, isLoading }: LoginCardProps) {
         <div className="text-center">
           <span className="text-4xl">⏰</span>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Cron Monitor
+          Scheduling Monitor
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to monitor your cron jobs

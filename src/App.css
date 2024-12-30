@@ -1,0 +1,37 @@
+/* Main Page Styling for Amnet Digital */
+.amnet-main-text {
+    font-size: 3rem; /* Large text for visibility */
+    font-weight: bold;
+    color: #333;
+    transition: color 0.3s ease, transform 0.3s ease; /* Transition for color and transform */
+    cursor: pointer;
+  }
+  
+  /* Hover effect for Amnet Digital in the main page */
+  .amnet-main-text:hover {
+    color: #ff7f50; /* Change text color on hover */
+    transform: scale(1.1); /* Slightly increase the size of the text */
+    letter-spacing: 1px; /* Optional: Add some letter spacing for extra effect */
+  }
+  
+  /* Styling for Amnet Digital in the footer */
+  .amnet-footer-text {
+    font-weight: bold;
+    color: #333;
+    transition: color 0.3s ease, transform 0.3s ease; /* Transition for color and transform */
+    cursor: pointer;
+  }
+  
+  /* Hover effect for Amnet Digital in the footer */
+  .amnet-footer-text:hover {
+    color: #ff7f50; /* Change text color on hover */
+    transform: scale(1.1); /* Slightly increase the size of the text */
+    letter-spacing: 1px; /* Optional: Add some letter spacing for extra effect */
+  }
+  
+  /* Optional: A subtle underline effect for the hover */
+  .amnet-footer-text:hover,
+  .amnet-main-text:hover {
+    text-decoration: underline;
+  }
+  

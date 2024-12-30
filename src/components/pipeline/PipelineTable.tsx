@@ -1,110 +1,180 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBadge } from '../dashboard/StatusBadge';
 import type { CronJob, TableType } from '../../types/cron';
 
-interface PipelineTableProps {
-  stages: TableType[]; // Array of stage names
-  data: CronJob[]; // Array of all CronJob objects from the API
-}
-
-// Function to format date as per IST
+// Helper function to format date in IST
 function formatDateInIST(utcDate: string): string {
-  const date = new Date(utcDate); // Parse the UTC date string
-
-  // Get the timezone offset in minutes (for IST, it's +330 minutes)
+  const date = new Date(utcDate);
   const timezoneOffset = 330; // IST is UTC +5:30, so 330 minutes
+  date.setMinutes(date.getMinutes() - timezoneOffset);
 
-  // Adjust the date by subtracting the offset to get the original time in UTC
-  date.setMinutes(date.getMinutes() - timezoneOffset); // Revert the time back to UTC
-
-  // Options for the formatted output (day of week, date, time, and IST)
   const options: Intl.DateTimeFormatOptions = {
-    weekday: 'short', // Day of the week (e.g., Thu)
+    weekday: 'short',
     year: 'numeric',
-    month: 'short', // Abbreviated month (e.g., Dec)
+    month: 'short',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: true, // 12-hour format (AM/PM)
-    timeZoneName: 'short', // Time zone (IST)
+    hour12: true,
+    timeZoneName: 'short',
   };
-
-  // Using the 'en-IN' locale for Indian date format (DD MMM YYYY, HH:MM:SS AM/PM)
   return new Intl.DateTimeFormat('en-IN', options).format(date);
 }
 
 export function PipelineTable({ stages, data }: PipelineTableProps) {
-  console.log("The stages are", stages);
-  console.log("Data", data[0]);
-  // const test = data[0];
-  const test = data[0].concat(data[1], data[2]);
+  const [groupedData, setGroupedData] = useState<CronJob[][]>([]);
+  const [visibleJobs, setVisibleJobs] = useState<CronJob[]>([]);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
 
-  // Group jobs by their "table" field
-  const groupedData = stages.map((stage) => {
-    return test.filter((job) => job.table === stage);
-  });
+  // Filter states
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all'); // all, running, failed, etc.
+
+  useEffect(() => {
+    // Flatten the data and sort by start time
+    const allJobs = data.reduce((acc, cronJob) => acc.concat(cronJob), [] as CronJob[]);
+    const sortedJobs = allJobs.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+
+    // Apply the filters
+    const filteredJobs = sortedJobs.filter((job) => {
+      const matchesDateRange =
+        (!startDate || new Date(job.start_time) >= new Date(startDate)) &&
+        (!endDate || new Date(job.end_time) <= new Date(endDate));
+
+      const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+
+      return matchesDateRange && matchesStatus;
+    });
+
+    setGroupedData(filteredJobs);
+  }, [data, startDate, endDate, statusFilter]);
+
+  const loadJobsForPage = (currentPage: number) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const jobsForPage = groupedData.slice(startIndex, endIndex);
+    setVisibleJobs(jobsForPage);
+  };
+
+  // Update visible jobs whenever the page changes
+  useEffect(() => {
+    loadJobsForPage(page);
+  }, [page, groupedData]);
+
+  const handleNextPage = () => {
+    if ((page * itemsPerPage) < groupedData.length) {
+      setPage(page + 1);
+    }
+  };
+
+  const handlePreviousPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+    <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
+      {/* Filters */}
+      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50">
+        <div className="flex justify-between items-center">
+          <div className="space-x-4">
+            {/* Date Range Filter */}
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+            />
+            <span className="text-gray-500">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="running">Running</option>
+            <option value="failed">Failed</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="grid grid-cols-3 gap-4 p-4 bg-primary-50 border-b border-gray-200">
+      <div className="grid grid-cols-3 gap-6 p-6 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-gray-200">
         {stages.map((stage) => (
           <div key={stage} className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900">{stage}</h3>
+            <h3 className="text-xl font-semibold text-gray-800">{stage}</h3>
           </div>
         ))}
       </div>
 
       {/* Content */}
-      <div className="grid grid-cols-3 gap-4 p-4">
-        {stages.map((stage, index) => (
+      <div className="grid grid-cols-3 gap-6 p-6">
+        {stages.map((stage) => (
           <div key={stage} className="space-y-4">
-            {/* Loop through jobs for each stage */}
-            {groupedData[index]?.slice(0, 3).map((job) => {
-              const startTime = job.start_time;
-              const endTime = job.end_time;
-              console.log(job.start_time);
-
-              return (
-                <div
-                  key={job.id}
-                  className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-primary-300 transition-colors"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-gray-900 truncate" title={job.name}>
-                      {job.name}
-                    </h4>
-                    <StatusBadge status={job.status} />
+            {visibleJobs
+              .filter((job) => job.table === stage)
+              .map((job) => {
+                const startTime = job.start_time;
+                const endTime = job.end_time;
+                const isError = job.error_message ? true : false;
+                return (
+                  <div
+                    key={job.id}
+                    className={`bg-gray-50 rounded-lg p-6 border border-gray-200 hover:border-primary-300 transition-all duration-300 transform hover:scale-105 ${
+                      isError ? 'border-red-500 bg-red-100' : ''
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium text-gray-900 truncate" title={job.name}>
+                        {job.name}
+                      </h4>
+                      <StatusBadge status={job.status} />
+                    </div>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      {startTime && <p>Started: {formatDateInIST(startTime)}</p>}
+                      {endTime && <p>Ended: {formatDateInIST(endTime)}</p>}
+                      {job.error_message && <p className="text-red-600">Error: {job.error_message}</p>}
+                    </div>
                   </div>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    {startTime && <p>Started: {formatDateInIST(startTime)}</p>}
-                    {endTime && <p>Ended: {formatDateInIST(endTime)}</p>}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         ))}
       </div>
 
-      {/* Footer */}
-      <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 border-t border-gray-200">
-        {stages.map((stage, index) => {
-          const totalJobs = groupedData[index]?.length || 0;
-          const runningJobs = groupedData[index]?.filter((j) => j.status === 'running').length || 0;
-          const failedJobs = groupedData[index]?.filter((j) => j.status === 'failed').length || 0;
-
-          return (
-            <div key={stage} className="text-center">
-              <div className="text-sm text-gray-600">
-                <p>Total Jobs: {totalJobs}</p>
-                <p>Running: {runningJobs}</p>
-                <p>Failed: {failedJobs}</p>
-              </div>
-            </div>
-          );
-        })}
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center p-6 bg-gray-50 border-t border-gray-200">
+        <button
+          onClick={handlePreviousPage}
+          disabled={page === 1}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 transition-all duration-300 hover:bg-blue-700"
+        >
+          Previous
+        </button>
+        <span className="text-gray-700">
+          Page {page} of {Math.ceil(groupedData.length / itemsPerPage)}
+        </span>
+        <button
+          onClick={handleNextPage}
+          disabled={page * itemsPerPage >= groupedData.length}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 transition-all duration-300 hover:bg-blue-700"
+        >
+          Next
+        </button>
       </div>
     </div>
   );
