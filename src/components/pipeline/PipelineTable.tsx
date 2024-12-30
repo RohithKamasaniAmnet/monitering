@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { StatusBadge } from '../dashboard/StatusBadge';
 import { toast, ToastContainer } from 'react-toastify';
-import type { CronJob, TableType } from '../../types/cron';
+import type { CronJob } from '../../types/cron';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Helper function to format date in IST
 function formatDateInIST(utcDate: string): string {
   const date = new Date(utcDate);
-  const timezoneOffset = 330; // IST is UTC +5:30, so 330 minutes
+  const timezoneOffset = 330;
   date.setMinutes(date.getMinutes() - timezoneOffset);
 
   const options: Intl.DateTimeFormatOptions = {
@@ -25,23 +24,20 @@ function formatDateInIST(utcDate: string): string {
   return new Intl.DateTimeFormat('en-IN', options).format(date);
 }
 
-export function PipelineTable({ stages, data }: PipelineTableProps) {
+export function PipelineTable({ stages, data }: { stages: string[]; data: CronJob[][] }) {
   const [groupedData, setGroupedData] = useState<CronJob[][]>([]);
-  const [visibleJobs, setVisibleJobs] = useState<CronJob[]>([]);
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
-
-  // Filter states
+  const [visibleJobs, setVisibleJobs] = useState<Record<string, CronJob[]>>({});
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all'); // all, running, failed, etc.
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Initialize columnRefs to store references for each column
+  const columnRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    // Flatten the data and sort by start time
     const allJobs = data.reduce((acc, cronJob) => acc.concat(cronJob), [] as CronJob[]);
     const sortedJobs = allJobs.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
 
-    // Apply the filters
     const filteredJobs = sortedJobs.filter((job) => {
       const matchesDateRange =
         (!startDate || new Date(job.start_time) >= new Date(startDate)) &&
@@ -55,31 +51,14 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
     setGroupedData(filteredJobs);
   }, [data, startDate, endDate, statusFilter]);
 
-  const loadJobsForPage = (currentPage: number) => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const jobsForPage = groupedData.slice(startIndex, endIndex);
-    setVisibleJobs(jobsForPage);
-  };
-
-  // Update visible jobs whenever the page changes
   useEffect(() => {
-    loadJobsForPage(page);
-  }, [page, groupedData]);
+    const initialVisibleJobs: Record<string, CronJob[]> = {};
+    stages.forEach((stage) => {
+      initialVisibleJobs[stage] = groupedData.filter((job) => job.table === stage).slice(0, 10);
+    });
+    setVisibleJobs(initialVisibleJobs);
+  }, [groupedData, stages]);
 
-  const handleNextPage = () => {
-    if ((page * itemsPerPage) < groupedData.length) {
-      setPage(page + 1);
-    }
-  };
-
-  const handlePreviousPage = () => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  };
-
-  // API call function for flushing Redis
   const flushRedis = async () => {
     try {
       const response = await fetch('http://ec2-3-229-220-107.compute-1.amazonaws.com:5000/flush_redis', {
@@ -95,32 +74,27 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
 
       const responseData = await response.json();
       console.log('Redis flushed successfully:', responseData);
-      return 'Redis flushed successfully';  // Success message
+      return 'Redis flushed successfully';
     } catch (error) {
       console.error('Error flushing Redis:', error);
-      throw new Error('Error flushing Redis');  // Error message
+      throw new Error('Error flushing Redis');
     }
   };
 
-  // Mutation to flush Redis
   const { mutate, isLoading: isFlushing } = useMutation(flushRedis, {
-    onMutate: () => {
-      // Optional: Disable the button and show a loading state
-    },
+    onMutate: () => {},
     onSuccess: (data) => {
-      toast.success(data); // Show success toast
+      toast.success(data);
     },
     onError: (error: Error) => {
-      toast.error(`Error: ${error.message}`); // Show error toast
+      toast.error(`Error: ${error.message}`);
     },
   });
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-300">
-      {/* Toast Container */}
       <ToastContainer />
 
-      {/* Flush Redis Button */}
       <div className="p-6 bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-lg">
         <div className="flex justify-center">
           <button
@@ -133,11 +107,9 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
         </div>
       </div>
 
-      {/* Filters Section */}
       <div className="p-6 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-b border-gray-200">
         <div className="flex justify-between items-center">
           <div className="space-x-4">
-            {/* Date Range Filter */}
             <input
               type="date"
               value={startDate}
@@ -153,7 +125,6 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
             />
           </div>
 
-          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -167,7 +138,6 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
         </div>
       </div>
 
-      {/* Header Section */}
       <div className="grid grid-cols-3 gap-6 p-6 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-gray-200 rounded-t-lg">
         {stages.map((stage) => (
           <div key={stage} className="text-center">
@@ -176,60 +146,40 @@ export function PipelineTable({ stages, data }: PipelineTableProps) {
         ))}
       </div>
 
-      {/* Content Section */}
       <div className="grid grid-cols-3 gap-6 p-6">
         {stages.map((stage) => (
-          <div key={stage} className="space-y-4">
-            {visibleJobs
-              .filter((job) => job.table === stage)
-              .map((job) => {
-                const startTime = job.start_time;
-                const endTime = job.end_time;
-                const isError = job.error_message ? true : false;
-                return (
-                  <div
-                    key={job.id}
-                    className={`bg-white rounded-lg p-6 border border-gray-200 hover:border-primary-300 transition-all duration-300 transform hover:scale-105 ${
-                      isError ? 'border-red-500 bg-red-100' : ''
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-gray-900 truncate" title={job.name}>
-                        {job.name}
-                      </h4>
-                      <StatusBadge status={job.status} />
-                    </div>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      {startTime && <p>Started: {formatDateInIST(startTime)}</p>}
-                      {endTime && <p>Ended: {formatDateInIST(endTime)}</p>}
-                      {job.error_message && <p className="text-red-600">Error: {job.error_message}</p>}
-                    </div>
+          <div
+            key={stage}
+            ref={(el) => (columnRefs.current[stage] = el)}
+            className="space-y-4 overflow-auto max-h-96"
+          >
+            {visibleJobs[stage]?.map((job) => {
+              const startTime = job.start_time;
+              const endTime = job.end_time;
+              const isError = job.error_message ? true : false;
+              return (
+                <div
+                  key={job.id}
+                  className={`bg-white rounded-lg p-6 border border-gray-200 hover:border-primary-300 transition-all duration-300 transform hover:scale-105 ${
+                    isError ? 'border-red-500 bg-red-100' : ''
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900 truncate" title={job.name}>
+                      {job.name}
+                    </h4>
+                    <StatusBadge status={job.status} />
                   </div>
-                );
-              })}
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {startTime && <p>Started: {formatDateInIST(startTime)}</p>}
+                    {endTime && <p>Ended: {formatDateInIST(endTime)}</p>}
+                    {job.error_message && <p className="text-red-600">Error: {job.error_message}</p>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ))}
-      </div>
-
-      {/* Pagination Controls */}
-      <div className="flex justify-between items-center p-6 bg-gray-50 border-t border-gray-200">
-        <button
-          onClick={handlePreviousPage}
-          disabled={page === 1}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 transition-all duration-300 hover:bg-blue-700"
-        >
-          Previous
-        </button>
-        <span className="text-gray-700">
-          Page {page} of {Math.ceil(groupedData.length / itemsPerPage)}
-        </span>
-        <button
-          onClick={handleNextPage}
-          disabled={page * itemsPerPage >= groupedData.length}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg disabled:bg-gray-300 transition-all duration-300 hover:bg-blue-700"
-        >
-          Next
-        </button>
       </div>
     </div>
   );
